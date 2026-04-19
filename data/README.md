@@ -5,7 +5,7 @@ This repository keeps only the GitHub-safe EMBER2024 subset in Git.
 - `reference/` contains tracked metadata and smaller official model artifacts.
 - `local/` is ignored by Git and is intended for symlinks to the full local dataset.
 
-If your teammates need the complete EMBER2024 workspace, point them at a shared
+If you need the complete EMBER2024 workspace, use shared
 storage root containing the `EMBER2024-*` directories and run:
 
 ```bash
