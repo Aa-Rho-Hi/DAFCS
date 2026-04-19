@@ -1,5 +1,44 @@
 # EMBER2024 Project
 
+## Summary
+
+This repository benchmarks malware detection and family classification on the
+EMBER2024 dataset using both official-style LightGBM baselines and a custom
+PyTorch pipeline based on contrastive pre-training, multi-task fine-tuning, and
+prototypical inference for long-tail families.
+
+Dataset used:
+- EMBER2024
+- canonical local memmaps built from the official raw JSONL shards
+- train `(2626000, 2568)`, test `(605929, 2568)`, challenge `(6315, 2568)`
+
+## What's In This Repo
+
+- data loaders for the cleaned canonical EMBER2024 train, test, and challenge splits
+- official-style LightGBM baseline scripts for malware detection comparison
+- PyTorch models for contrastive pre-training, multi-task fine-tuning, and prototype-based family inference
+- evaluation utilities for ROC-AUC, PR-AUC, family metrics, and challenge-set comparisons
+- a notebook for report-ready plots, comparison tables, and embedding visualisation
+
+## Current Status
+
+- canonical local EMBER2024 data preparation and verification are working
+- the evaluation pipeline has been repaired for the corrected test and challenge methodology
+- LightGBM CPU sanity runs are working on the cleaned memmaps
+- the deep-learning pipeline is scaffolded and ready for longer training runs
+
+## Quick Start
+
+```bash
+cd /Users/roheeeee/Documents/DACS/ember2024-project
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+python scripts/train_lgbm_memmap.py --n-estimators 300
+```
+
+This runs a quick LightGBM sanity benchmark against the cleaned EMBER2024 local dataset.
+
 PyTorch project for the EMBER2024 malware benchmark with three stages:
 
 1. Supervised contrastive pre-training on malicious files with confident family labels.
