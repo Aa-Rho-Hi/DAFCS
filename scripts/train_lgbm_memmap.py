@@ -26,6 +26,7 @@ Notes
 from __future__ import annotations
 
 import argparse
+import os
 from pathlib import Path
 from typing import Iterable
 
@@ -37,6 +38,7 @@ from sklearn.metrics import roc_auc_score, roc_curve
 TRAIN_SHAPE = (2_626_000, 2568)
 TEST_SHAPE = (605_929, 2568)
 CHALLENGE_SHAPE = (6_315, 2568)
+PROJECT_DIR = Path(__file__).resolve().parent.parent
 
 
 def load_split(root: Path, subset: str, shape: tuple[int, int]) -> tuple[np.memmap, np.memmap]:
@@ -46,6 +48,36 @@ def load_split(root: Path, subset: str, shape: tuple[int, int]) -> tuple[np.memm
     X = np.memmap(x_path, dtype=np.float32, mode="r", shape=shape)
     y = np.memmap(y_path, dtype=np.int32, mode="r", shape=(shape[0],))
     return X, y
+
+
+def resolve_data_root(explicit_path: str | None) -> Path:
+    """Resolve the data root from CLI, env, or repo-local defaults."""
+    if explicit_path:
+        return Path(explicit_path)
+
+    candidates = []
+    env_dir = os.environ.get("EMBER2024_DIR")
+    if env_dir:
+        candidates.append(Path(env_dir))
+
+    candidates.extend(
+        [
+            PROJECT_DIR / "data" / "local" / "EMBER2024-corrected-full",
+            PROJECT_DIR / ".." / "EMBER2024-corrected-full",
+            PROJECT_DIR / "data" / "local" / "EMBER2024-corrected-canonical",
+            PROJECT_DIR / ".." / "EMBER2024-corrected-canonical",
+        ]
+    )
+
+    for candidate in candidates:
+        candidate = candidate.resolve()
+        if candidate.is_dir():
+            return candidate
+
+    raise FileNotFoundError(
+        "No EMBER2024 data directory found. Set --data-root, export EMBER2024_DIR, "
+        "or run bash scripts/link_local_ember2024.sh."
+    )
 
 
 def split_summary(name: str, X: np.memmap, y: np.memmap) -> None:
@@ -131,8 +163,8 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Train LightGBM on EMBER2024 memmaps.")
     parser.add_argument(
         "--data-root",
-        default="/Users/roheeeee/Documents/DACS/EMBER2024-corrected-full",
-        help="Directory containing X_*.dat / y_*.dat files.",
+        default=None,
+        help="Directory containing X_*.dat / y_*.dat files. Defaults to EMBER2024_DIR or repo-local data links.",
     )
     parser.add_argument(
         "--batch-size",
@@ -177,7 +209,7 @@ def main() -> None:
     )
     args = parser.parse_args()
 
-    root = Path(args.data_root)
+    root = resolve_data_root(args.data_root)
 
     print(f"Data root: {root}")
     X_train, y_train = load_split(root, "train", TRAIN_SHAPE)

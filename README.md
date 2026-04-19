@@ -56,6 +56,7 @@ The repository also includes:
 ```text
 ember2024-project/
 ├── README.md
+├── data/
 ├── requirements.txt
 ├── configs/
 │   ├── default.yaml
@@ -64,6 +65,25 @@ ember2024-project/
 ├── scripts/
 └── notebooks/
 ```
+
+## Dataset placement
+
+This repository now keeps the GitHub-safe EMBER2024 subset under `data/reference`
+and expects the full local dataset under `data/local` when you want to train or
+rerun the full benchmark.
+
+Link the existing sibling dataset directories into the repo with:
+
+```bash
+bash scripts/link_local_ember2024.sh
+```
+
+After that, the run scripts auto-discover `data/local/EMBER2024-corrected-full`
+or `data/local/EMBER2024-corrected-canonical` without needing an explicit path.
+
+Files that exceed practical GitHub limits, including multi-gigabyte memmaps,
+large JSONL shards, and `EMBER2024_family.model`, are intentionally left out of
+Git history.
 
 ## Setup
 

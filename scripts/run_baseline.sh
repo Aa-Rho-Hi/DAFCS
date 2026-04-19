@@ -7,15 +7,16 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 cd "$PROJECT_DIR"
+source "$SCRIPT_DIR/common_data_dir.sh"
 
 # ── Config ────────────────────────────────────────────────────────────────────
 CONFIG="${CONFIG:-configs/default.yaml}"
-DATA_DIR="${EMBER2024_DIR:-${1:-}}"
+DATA_DIR="$(resolve_ember2024_dir "$PROJECT_DIR" "${1:-}" || true)"
 TASK="${TASK:-all}"   # "detection", "family", or "all"
 
 # ── Validate data dir ─────────────────────────────────────────────────────────
 if [[ -z "$DATA_DIR" ]]; then
-    echo "ERROR: Set EMBER2024_DIR env var or pass data directory as first argument."
+    print_ember2024_dir_help
     echo "  Example: EMBER2024_DIR=/data/ember2024 bash scripts/run_baseline.sh"
     echo "  Or use mock data: bash scripts/run_baseline.sh /tmp/ember2024_mock"
     exit 1

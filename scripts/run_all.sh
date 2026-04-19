@@ -7,9 +7,11 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 cd "$PROJECT_DIR"
+source "$SCRIPT_DIR/common_data_dir.sh"
 
-DATA_DIR="${EMBER2024_DIR:-${1:-}}"
+DATA_DIR="$(resolve_ember2024_dir "$PROJECT_DIR" "${1:-}" || true)"
 if [[ -z "$DATA_DIR" ]]; then
+    print_ember2024_dir_help
     echo "Usage: EMBER2024_DIR=/path/to/ember2024 bash scripts/run_all.sh"
     echo "   or: bash scripts/run_all.sh /path/to/ember2024"
     echo ""
