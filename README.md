@@ -68,11 +68,12 @@ ember2024-project/
 
 ## Dataset placement
 
-This repository now keeps the GitHub-safe EMBER2024 subset under `data/reference`
-and expects the full local dataset under `data/local` when you want to train or
-rerun the full benchmark.
+This repository does not track EMBER2024 dataset files or official model
+artifacts in Git. To run the project, keep the dataset on your machine and
+point the code at that local copy.
 
-Link the existing sibling dataset directories into the repo with:
+If the `EMBER2024-*` directories sit next to the repository, link them into the
+ignored `data/local` directory with:
 
 ```bash
 bash scripts/link_local_ember2024.sh
@@ -81,18 +82,24 @@ bash scripts/link_local_ember2024.sh
 After that, the run scripts auto-discover `data/local/EMBER2024-corrected-full`
 or `data/local/EMBER2024-corrected-canonical` without needing an explicit path.
 
-Files that exceed practical GitHub limits, including multi-gigabyte memmaps,
-large JSONL shards, and `EMBER2024_family.model`, are intentionally left out of
-Git history.
-
-## Team dataset workflow
-
-If teammates need the complete dataset, do not try to put the full workspace in
-normal GitHub history. Instead, keep the `EMBER2024-*` directories on shared
-storage and materialize them locally with:
+If your dataset lives somewhere else on disk, point the code at it explicitly:
 
 ```bash
-bash scripts/sync_full_dataset.sh /path/to/shared/root
+export EMBER2024_DIR=/path/to/EMBER2024-corrected-full
+bash scripts/run_all.sh
+```
+
+Large dataset files, memmaps, JSONL shards, and official model artifacts are
+intentionally left out of Git history.
+
+## Local dataset workflow
+
+If you already have a local or mounted source directory that contains the
+`EMBER2024-*` folders, you can materialize a repo-local working tree under
+`data/local` with:
+
+```bash
+bash scripts/sync_full_dataset.sh /path/to/source/root
 python scripts/verify_full_dataset.py
 ```
 
@@ -166,11 +173,14 @@ Outputs land in:
 
 ## Real-data workflow
 
-Set the data directory:
+Point the code at a local EMBER2024 directory:
 
 ```bash
 export EMBER2024_DIR=/path/to/ember2024
 ```
+
+Or let the scripts auto-discover `data/local/EMBER2024-corrected-full` after
+running `bash scripts/link_local_ember2024.sh`.
 
 Run the baseline:
 
@@ -233,6 +243,7 @@ If you cannot download the real dataset:
 
 - Use `scripts/generate_mock_data.py` to validate the entire code path locally.
 - Keep `configs/smoke.yaml` for CPU-only sanity checks before moving to the real dataset.
+- The repository intentionally ships without the real dataset or official model artifacts.
 
 If the baseline step fails:
 

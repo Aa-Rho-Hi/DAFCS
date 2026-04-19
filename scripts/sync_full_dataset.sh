@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Materialize the complete EMBER2024 workspace under data/local from a shared root.
+# Materialize the complete EMBER2024 workspace under data/local from a source root.
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -20,10 +20,10 @@ DATASETS=(
 usage() {
     cat <<'EOF'
 Usage:
-  bash scripts/sync_full_dataset.sh /path/to/shared/root
+  bash scripts/sync_full_dataset.sh /path/to/source/root
 
 Environment:
-  EMBER2024_SHARED_ROOT   Shared storage root that contains the EMBER2024-* directories.
+  EMBER2024_SHARED_ROOT   Source root that contains the EMBER2024-* directories.
   MODE                    One of: rsync, copy, symlink (default: rsync)
 
 Examples:

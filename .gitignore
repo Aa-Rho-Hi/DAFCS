@@ -9,6 +9,7 @@ venv/
 checkpoints/
 results/
 data/local/
+data/reference/
 
 *.pt
 *.pth
