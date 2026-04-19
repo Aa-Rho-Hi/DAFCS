@@ -1,0 +1,98 @@
+data:
+  data_dir: "/tmp/ember2024_mock"
+  input_dim: 2568
+  non_pe_dim: 696
+  use_memmap: false
+  num_workers: 0
+  pin_memory: false
+  prefetch_factor: 2
+  val_weeks: 4
+  min_family_samples: 10
+  family_confidence_threshold: 0.7
+  file_types:
+    - Win32
+    - Win64
+    - Dot_Net
+    - APK
+    - ELF
+    - PDF
+
+model:
+  input_dim: 2568
+  hidden_dims: [256, 256, 128, 64]
+  dropout: 0.1
+  projection_dim: 32
+
+stage1:
+  epochs: 1
+  batch_size: 32
+  gradient_accumulation_steps: 1
+  lr: 1.0e-3
+  weight_decay: 1.0e-4
+  warmup_epochs: 0
+  temperature: 0.07
+  hard_neg_weight: 0.5
+  hard_neg_temp: 0.2
+  aug_mask_prob: 0.3
+  aug_noise_std: 0.05
+  n_classes_per_batch: 4
+  n_samples_per_class: 4
+  mixed_precision: false
+  checkpoint_dir: "checkpoints/stage1_smoke"
+  resume: null
+  save_every: 1
+
+stage2:
+  epochs: 1
+  batch_size: 64
+  gradient_accumulation_steps: 1
+  lr: 3.0e-4
+  backbone_lr_multiplier: 0.1
+  weight_decay: 1.0e-4
+  warmup_epochs: 0
+  focal_gamma: 2.0
+  focal_alpha: 0.25
+  class_balanced_beta: 0.999
+  family_weight_mode: "inverse_sqrt"
+  family_label_smoothing: 0.1
+  detection_weight: 1.0
+  family_weight: 1.0
+  use_arcface: true
+  arcface_scale: 64.0
+  arcface_margin: 0.5
+  use_cosine_classifier: true
+  use_logit_adj: true
+  logit_adj_tau: 1.0
+  mixup_alpha: 0.4
+  mixed_precision: false
+  checkpoint_dir: "checkpoints/stage2_smoke"
+  resume: null
+  pretrained_backbone: "checkpoints/stage1_smoke/best_model.pt"
+  save_every: 1
+
+stage3:
+  encoder_checkpoint: "checkpoints/stage1_smoke/best_model.pt"
+  batch_size: 128
+  similarity: "cosine"
+  output_dir: "checkpoints/stage3_smoke"
+
+evaluation:
+  checkpoint: "checkpoints/stage2_smoke/best_model.pt"
+  prototypical_checkpoint: "checkpoints/stage3_smoke/prototypes.npz"
+  lgbm_model: null
+  output_dir: "results/smoke"
+  batch_size: 128
+  tta_n_views: 3
+  tta_mask_prob: 0.1
+
+logging:
+  use_wandb: false
+  wandb_project: "ember2024"
+  wandb_entity: null
+  wandb_run_name: null
+  log_interval: 10
+  level: "INFO"
+
+hardware:
+  device: "cpu"
+  seed: 42

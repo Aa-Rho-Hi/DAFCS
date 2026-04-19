@@ -1,0 +1,144 @@
+# ============================================================
+# EMBER2024 Malware Detection — Default Configuration
+# ============================================================
+# All hyperparameters live here. No magic numbers in code.
+
+# ---------------------
+# Data
+# ---------------------
+data:
+  data_dir: "/path/to/ember2024"          # Override with --data_dir or env EMBER2024_DIR
+  input_dim: 2568                          # PE feature vector dimension
+  non_pe_dim: 696                          # Non-PE feature dimension
+  use_memmap: true                         # Memory-map arrays (recommended for large datasets)
+  num_workers: 8                           # DataLoader worker threads
+  pin_memory: true                         # Pin memory for faster GPU transfer
+  prefetch_factor: 2                       # Batches to prefetch per worker
+
+  # Validation split: use the last N weeks of training data
+  val_weeks: 4                             # Weeks 49-52 (of 52 total) → ~7.7% of train
+
+  # Family filtering
+  min_family_samples: 10                   # Families with fewer samples are excluded
+  family_confidence_threshold: 0.7         # Minimum family_confidence for contrastive/family labels
+
+  # File types in EMBER2024
+  file_types:
+    - Win32
+    - Win64
+    - Dot_Net
+    - APK
+    - ELF
+    - PDF
+
+# ---------------------
+# Architecture
+# ---------------------
+model:
+  input_dim: 2568
+  # ResidualMLP hidden layer sizes (in order, after initial projection)
+  hidden_dims: [1024, 1024, 512, 256]
+  dropout: 0.3
+  projection_dim: 128                      # Contrastive projection head output dim
+  # num_families set at runtime from data
+
+# ---------------------
+# Stage 1: Supervised Contrastive Pre-training
+# ---------------------
+stage1:
+  epochs: 50
+  batch_size: 512                          # Per-GPU effective batch size
+  gradient_accumulation_steps: 4           # Effective batch = batch_size * accumulation_steps
+  lr: 1.0e-3
+  weight_decay: 1.0e-4
+  warmup_epochs: 5
+  temperature: 0.07                        # SupCon temperature τ
+  # Hard negative up-weighting in SupCon loss
+  hard_neg_weight: 0.5                     # α — 0 = standard SupCon, 0.5 = moderate
+  hard_neg_temp: 0.2                       # Temperature for negative attention (≥ τ)
+  # Two-view feature augmentation (creates positive pairs within each batch)
+  aug_mask_prob: 0.3                       # Fraction of features to zero-out per view
+  aug_noise_std: 0.05                      # Std of Gaussian noise added to kept features
+  # Prototypical batch sampling: N classes × K samples
+  n_classes_per_batch: 64
+  n_samples_per_class: 8                   # Effective batch: 64*8=512
+  mixed_precision: true                    # torch.amp FP16
+  checkpoint_dir: "checkpoints/stage1"
+  resume: null                             # Path to checkpoint to resume from
+  save_every: 5                            # Save checkpoint every N epochs
+
+# ---------------------
+# Stage 2: Multi-Task Fine-tuning
+# ---------------------
+stage2:
+  epochs: 30
+  batch_size: 1024
+  gradient_accumulation_steps: 2
+  lr: 3.0e-4
+  backbone_lr_multiplier: 0.1             # Scale backbone LR vs head LR
+  weight_decay: 1.0e-4
+  warmup_epochs: 3
+  # Focal loss
+  focal_gamma: 2.0
+  focal_alpha: 0.25
+  # Class-balanced focal loss (Cui et al. 2019)
+  class_balanced_beta: 0.999
+  family_weight_mode: "inverse_sqrt"
+  family_label_smoothing: 0.1
+  # Multi-task loss weights
+  detection_weight: 1.0
+  family_weight: 1.0
+  # Family head: ArcFace > CosineClassifier > plain Linear
+  use_arcface: true                        # ArcFace angular margin (recommended)
+  arcface_scale: 64.0                      # s — logit scale (face-recognition default)
+  arcface_margin: 0.5                      # m — angular margin in radians (~28.6°)
+  use_cosine_classifier: true              # Fallback if use_arcface=false
+  use_logit_adj: true                      # LogitAdjustedLoss vs ClassBalancedFocalLoss
+  logit_adj_tau: 1.0                       # τ for logit adjustment (paper default)
+  # Mix-up augmentation
+  mixup_alpha: 0.4                         # Beta(α,α) interpolation; 0 = disabled
+  mixed_precision: true
+  checkpoint_dir: "checkpoints/stage2"
+  resume: null
+  pretrained_backbone: null               # Path to Stage 1 checkpoint
+  save_every: 5
+
+# ---------------------
+# Stage 3: Prototypical Few-Shot Inference
+# ---------------------
+stage3:
+  encoder_checkpoint: null               # Path to encoder (Stage 1 preferred)
+  batch_size: 2048                       # For embedding extraction
+  similarity: "cosine"                   # "cosine" or "euclidean"
+  output_dir: "checkpoints/stage3"
+
+# ---------------------
+# Evaluation
+# ---------------------
+evaluation:
+  checkpoint: null                       # Path to Stage 2 model checkpoint
+  prototypical_checkpoint: null          # Path to Stage 3 prototypes (.npz)
+  lgbm_model: null                       # Optional LightGBM detection model path
+  output_dir: "results"
+  batch_size: 2048
+  # Test-Time Augmentation: average over N augmented views at inference
+  tta_n_views: 5                         # 1 = disabled; 5 = recommended
+  tta_mask_prob: 0.1                     # Feature mask prob per view (mild)
+
+# ---------------------
+# Logging & Experiment Tracking
+# ---------------------
+logging:
+  use_wandb: false
+  wandb_project: "ember2024"
+  wandb_entity: null                     # Your W&B username or team
+  wandb_run_name: null                   # Auto-generated if null
+  log_interval: 100                      # Steps between console/wandb logs
+  level: "INFO"
+
+# ---------------------
+# Hardware
+# ---------------------
+hardware:
+  device: "cuda"                         # "cuda", "mps", or "cpu"
+  seed: 42
