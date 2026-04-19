@@ -5,6 +5,20 @@ This repository keeps only the GitHub-safe EMBER2024 subset in Git.
 - `reference/` contains tracked metadata and smaller official model artifacts.
 - `local/` is ignored by Git and is intended for symlinks to the full local dataset.
 
+If your teammates need the complete EMBER2024 workspace, point them at a shared
+storage root containing the `EMBER2024-*` directories and run:
+
+```bash
+bash scripts/sync_full_dataset.sh /path/to/shared/root
+python scripts/verify_full_dataset.py
+```
+
+`sync_full_dataset.sh` supports:
+
+- `MODE=rsync` to copy/update a full local working copy under `data/local`
+- `MODE=copy` for a direct copy without rsync
+- `MODE=symlink` if the shared root is already mounted locally
+
 To link the existing sibling EMBER2024 directories into this repository:
 
 ```bash

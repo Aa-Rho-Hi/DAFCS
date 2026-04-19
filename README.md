@@ -85,6 +85,20 @@ Files that exceed practical GitHub limits, including multi-gigabyte memmaps,
 large JSONL shards, and `EMBER2024_family.model`, are intentionally left out of
 Git history.
 
+## Team dataset workflow
+
+If teammates need the complete dataset, do not try to put the full workspace in
+normal GitHub history. Instead, keep the `EMBER2024-*` directories on shared
+storage and materialize them locally with:
+
+```bash
+bash scripts/sync_full_dataset.sh /path/to/shared/root
+python scripts/verify_full_dataset.py
+```
+
+This produces a full repo-local dataset tree under `data/local` that the run
+scripts already know how to discover.
+
 ## Setup
 
 Create an environment and install dependencies:
