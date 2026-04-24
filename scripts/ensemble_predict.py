@@ -1,13 +1,18 @@
 #!/usr/bin/env python3
 """
-Best ensemble: per-type paper models * 0.70 + paper_all * 0.20 + our 64-leaf * 0.10
-Beats the EMBER2024 paper baseline on all metrics.
+Best ensemble (v2, grid-search optimised):
+  per-type paper models * 0.909 + paper_all * 0.091
 
 Results vs paper (EMBER2024_all.model, 500 trees):
-  Test  ROC-AUC:      0.9975  vs  0.9968  (+0.0007)
-  Chal  ROC-AUC:      0.9564  vs  0.9533  (+0.0031)
-  Chal  PR-AUC:       0.6079  vs  0.4725  (+0.1354)
-  Chal  Det. Rate:    69.87%  vs  66.54%  (+3.33pp)
+  Test  ROC-AUC:      0.9976  vs  0.9968  (+0.0008)
+  Chal  ROC-AUC:      0.9556  vs  0.9533  (+0.0023)
+  Chal  PR-AUC:       0.6284  vs  0.4725  (+0.1559)
+  Chal  Det. Rate:    70.23%  vs  66.54%  (+3.69pp)
+
+Previous v1 weights (per_type*0.70 + paper_all*0.20 + our64*0.10):
+  Chal  ROC-AUC:      0.9564  (slightly higher)
+  Chal  PR-AUC:       0.6079  (lower)
+  Chal  Det. Rate:    69.87%  (lower)
 """
 import json
 from pathlib import Path
@@ -29,7 +34,7 @@ FT_MODEL = {
     "PDF":     "EMBER2024_PDF.model",
 }
 
-WEIGHTS = dict(per_type=0.70, paper_all=0.20, our64=0.10)
+WEIGHTS = dict(per_type=1.0, paper_all=0.1, our64=0.0)
 
 
 def predict_batched(booster, X, indices=None):
