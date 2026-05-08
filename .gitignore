@@ -7,12 +7,16 @@ __pycache__/
 venv/
 
 checkpoints/
-results/
+results/**/*.npy
+results/**/*.json
+results/**/*.csv
 data/local/
 data/reference/
 
 *.pt
 *.pth
 *.npz
+*.npy
 *.dat
 *.log
+*.joblib
