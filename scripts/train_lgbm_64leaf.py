@@ -4,13 +4,22 @@ Retrain LightGBM with 64 leaves (matching paper complexity) + early stopping.
 Targets better generalization to evasive malware on the challenge set.
 """
 import time
+import os
 from pathlib import Path
 
 import lightgbm as lgb
 import numpy as np
 from sklearn.metrics import average_precision_score, roc_auc_score
 
-ROOT = Path("/Users/roheeeee/Documents/DACS/EMBER2024-corrected-full")
+# Allow running from repo root without editing this script: prefer EMBER2024_DIR env var,
+# otherwise use the repo-local data/local/EMBER2024-corrected-full path.
+ROOT = None
+env_dir = os.environ.get("EMBER2024_DIR")
+if env_dir:
+    ROOT = Path(env_dir)
+else:
+    # relative to repository (this script is in DAFCS/scripts)
+    ROOT = Path(__file__).resolve().parent.parent / "data" / "local" / "EMBER2024-corrected-full"
 OUT  = Path("checkpoints/lgbm")
 BATCH = 50_000
 
@@ -20,8 +29,22 @@ def predict_batched(booster, X):
     )
 
 print("Loading training data...", flush=True)
-X = np.memmap(ROOT / "X_train.dat", dtype=np.float32, mode="r", shape=(2_626_000, 2568))
-y = np.memmap(ROOT / "y_train.dat", dtype=np.int32,   mode="r", shape=(2_626_000,))
+# infer number of samples from file size to avoid hard-coded counts
+X_train_path = ROOT / "X_train.dat"
+y_train_path = ROOT / "y_train.dat"
+if not X_train_path.exists() or not y_train_path.exists():
+    raise FileNotFoundError(f"Missing X_train.dat or y_train.dat under {ROOT}")
+feature_dim = 2568
+n_samples = os.path.getsize(X_train_path) // (feature_dim * 4)
+X = np.memmap(X_train_path, dtype=np.float32, mode="r", shape=(n_samples, feature_dim))
+y = np.memmap(y_train_path, dtype=np.int32,   mode="r", shape=(n_samples,))
+# Backward-compatible: some datasets wrote labels as float32; detect and reload if needed
+probe = np.asarray(y[: min(64, len(y))])
+if probe.size > 0:
+    unique_probe = set(np.unique(probe).tolist())
+    if unique_probe and not unique_probe.issubset({-1, 0, 1}):
+        # reload as float32 then cast
+        y = np.memmap(y_train_path, dtype=np.float32, mode="r", shape=(n_samples,)).astype(np.int32)
 
 # Temporal validation split: last ~7% as val
 n_val  = int(len(y) * 0.07)
@@ -32,9 +55,15 @@ tr_mask = np.array(y[tr_idx]) != -1
 va_mask = np.array(y[va_idx]) != -1
 tr_idx, va_idx = tr_idx[tr_mask], va_idx[va_mask]
 
-n_neg = int((np.array(y[tr_idx]) == 0).sum())
-n_pos = int((np.array(y[tr_idx]) == 1).sum())
-spw   = n_neg / n_pos
+tr_labels = np.array(y[tr_idx])
+n_neg = int((tr_labels == 0).sum())
+n_pos = int((tr_labels == 1).sum())
+if n_pos == 0:
+    raise SystemExit(
+        "Training labels contain no positive examples in the selected training split. "
+        "Check your `y_train.dat` and the temporal split configuration."
+    )
+spw = n_neg / max(1, n_pos)
 print(f"Train: {len(tr_idx):,}  Val: {len(va_idx):,}  scale_pos_weight={spw:.3f}", flush=True)
 
 print("Loading into RAM...", flush=True)
